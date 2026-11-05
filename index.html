@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thai Motorcycle Licence — Theory Trainer</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#fff; --ink:#1b1b1a; --dim:#6a6a67; --line:#e2e2de;
+  --accent:#0b5fa5; --ok:#137a4a; --bad:#b3261e; --warn:#8a5a00; --warnbg:#fdf6e3;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#131315; --card:#1c1c1f; --ink:#ececea; --dim:#9a9a97; --line:#2e2e33;
+         --accent:#63a8e8; --ok:#4cc38a; --bad:#f2837a; --warn:#e0b34a; --warnbg:#2a2415; }
+}
+*{box-sizing:border-box}
+/* buttons do not inherit colour from the page — without this they render as UA black
+   on the dark card background and the mock exam options become unreadable */
+button{color:inherit}
+/* default link blue is near-invisible on the dark card; this also fixes the gecc.dlt.go.th link */
+a{color:var(--accent)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+.wrap{max-width:780px;margin:0 auto;padding:0 14px}
+#view{padding-bottom:80px}
+header{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 0 0}
+h1{font-size:17px;margin:0 0 2px;letter-spacing:-.01em}
+.sub{font-size:12.5px;color:var(--dim);margin:0 0 10px}
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;background:none;border:0;border-bottom:2px solid transparent;
+  color:var(--dim);font:inherit;font-size:14px;padding:8px 11px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+h2{font-size:15px;margin:22px 0 8px;letter-spacing:-.01em}
+h3{font-size:13.5px;margin:16px 0 6px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+p,li{font-size:15px}
+.th{font-size:14.5px;color:var(--dim);line-height:1.5}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:9px;padding:11px 18px;
+  font:inherit;font-weight:600;cursor:pointer}
+.btn.ghost{background:none;color:var(--accent);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px;margin:8px 0;font:inherit;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.opt.right{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}
+.opt b{display:inline-block;min-width:1.3em;color:var(--dim);font-weight:600}
+.why{background:var(--warnbg);border-left:3px solid var(--warn);padding:10px 12px;
+  border-radius:0 8px 8px 0;font-size:14.5px;margin:10px 0 0}
+.note{color:var(--warn);font-size:13.5px;margin-top:6px}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;background:var(--accent)}
+.pill{font-size:11.5px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+.big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;font-size:12.5px}
+/* the sign PNGs are transparent with black glyphs, so they MUST sit on white —
+   on the dark card background the arrows and figures would disappear */
+.sign{object-fit:contain;background:#fff;border-radius:10px;padding:5px;display:block}
+.mono{font-variant-numeric:tabular-nums}
+.timer{font-variant-numeric:tabular-nums;font-weight:600}
+.timer.low{color:var(--bad)}
+details{border-top:1px solid var(--line);padding:10px 0}
+summary{cursor:pointer;font-weight:600;font-size:15px}
+kbd{font:inherit;font-size:14px;background:var(--bg);border:1px solid var(--line);
+  border-radius:5px;padding:1px 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Thai Motorcycle Licence — Theory Trainer</h1>
+  <p class="sub">ใบอนุญาตขับรถจักรยานยนต์ · 50 questions · 60 minutes · pass at 45 (90%)</p>
+  <nav id="nav"></nav>
+</div></header>
+<div class="wrap" id="view"></div>
+
+<script src="bank.js"></script>
+<script src="signs.js"></script>
+<script>
+const CATS = {
+  veh:  ['Vehicle law',   'กฎหมายว่าด้วยรถยนต์'],
+  trf:  ['Traffic law',   'กฎหมายว่าด้วยจราจรทางบก'],
+  sign: ['Signs',         'เครื่องหมายจราจร'],
+  mark: ['Road markings', 'เครื่องหมายจราจรบนพื้นทาง'],
+  alco: ['Alcohol & drugs', 'แอลกอฮอล์และยาเสพติด'],
+  fit:  ['Fitness to ride', 'ความพร้อมของผู้ขับขี่'],
+  aid:  ['First aid',       'การปฐมพยาบาล'],
+  etq:  ['Etiquette',     'มารยาทและจิตสำนึก'],
+  safe: ['Safe riding',   'เทคนิคการขับขี่อย่างปลอดภัย'],
+  maint:['Maintenance',   'การบำรุงรักษารถ'],
+  moto: ['Motorcycle',    'รถจักรยานยนต์'],
+  proc: ['Exam & process','ขั้นตอนการสอบ']
+};
+/* how many of each the mock aims for — shaped after the real 50-question paper */
+const QUOTA = {veh:7, trf:9, sign:8, mark:3, etq:5, safe:4, maint:4, moto:3, proc:2, alco:2, fit:2, aid:1};
+const KEY = 'thai-moto-progress';
+const PASS = 45, TOTAL = 50, MINUTES = 60;
+
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const save = a => localStorage.setItem(KEY, JSON.stringify(a));
+const el = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstChild; };
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+/* ---------- merge signs into the bank ----------
+   A sign question's three wrong options are drawn from the SAME family first
+   (no-U-turn against no-right-turn, no parking against no stopping, max speed
+   against min speed) and only then from the wider set. That is what makes the
+   confusable pairs the thing being tested. Regenerated on every paper, so the
+   position of the right answer is never learnable. */
+/* Families are the GALLERY grouping. For distractors, tiny families are merged into a
+   bigger pool — a 2-member family would otherwise fall through to unrelated signs and
+   hand you the answer (a gradient sign against a speed limit is no test at all).
+   Every group must hold at least 4 signs; the self-test enforces that. */
+const FAM_GROUP = {gradient:'road', surface:'road', uturn:'laneflow',
+                   endzone:'prohibit', rail:'aheadwarn', divert:'workwarn'};
+const gkey = s => FAM_GROUP[s.fam] || s.fam;
+const SIGN_GRP = {};
+SIGNS.forEach(s => (SIGN_GRP[gkey(s)] = SIGN_GRP[gkey(s)] || []).push(s));
+
+function signOpts(s){
+  const sibs  = shuffle(SIGN_GRP[gkey(s)].filter(x => x.en !== s.en));
+  const wider = shuffle(SIGNS.filter(x => gkey(x) !== gkey(s) && x.en !== s.en));
+  const picks = [], seen = new Set([s.en]);
+  for (const c of sibs.concat(wider)){
+    if (picks.length === 3) break;
+    if (seen.has(c.en)) continue;
+    seen.add(c.en); picks.push(c);
+  }
+  const opts = shuffle([s].concat(picks));
+  return {o: opts.map(x => [x.th, x.en]), a: opts.indexOf(s)};
+}
+
+/* gallery:true signs are shown for recognition but never asked — the eighteen
+   เบี่ยงเบนการจราจร diamonds all mean the same thing, so asking each one separately
+   would be padding, and inventing a distinct answer for each would be fiction. */
+SIGNS.filter(s => !s.gallery).forEach(s => {
+  const q = {c:'sign', img:s.img, code:s.code, sign:s, w:s.w,
+             en:'What does this sign mean?', th:'เครื่องหมายนี้หมายความว่าอย่างไร'};
+  Object.assign(q, signOpts(s));
+  BANK.push(q);
+});
+BANK.forEach((q,i) => q.id = i);
+
+let showThai = true;              // bilingual by default
+let excludeCarOnly = true;        // car-only items are off the motorcycle paper
+let tab = 'mock';
+let exam = null;                  // {qs, pick[], started, deadline, submitted}
+
+/* ---------- shell ---------- */
+const TABS = [['mock','Mock exam'],['study','Study'],['signs','Signs'],
+              ['numbers','Key numbers'],['process','The process'],['phrases','Thai phrases'],['history','History']];
+function render(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  TABS.forEach(([k,label]) => {
+    const b = document.createElement('button');
+    b.textContent = label; b.setAttribute('aria-selected', k===tab);
+    b.onclick = () => { tab = k; location.hash = k; render(); scrollTo(0,0); };
+    nav.appendChild(b);
+  });
+  const v = document.getElementById('view');
+  v.innerHTML = '';
+  ({mock:viewMock, study:viewStudy, signs:viewSigns, numbers:viewNumbers,
+    process:viewProcess, phrases:viewPhrases, history:viewHistory})[tab](v);
+}
+
+function qText(q){
+  return `<p style="margin:0 0 4px;font-weight:600">${esc(q.en)}</p>` +
+         (showThai ? `<p class="th" style="margin:0">${esc(q.th)}</p>` : '');
+}
+function optText(o){
+  return `${esc(o[1])}` + (showThai ? `<br><span class="th">${esc(o[0])}</span>` : '');
+}
+const THAI_LETTERS = ['ก','ข','ค','ง'];
+function signImg(q, px){
+  return q.img ? `<img class="sign" src="${q.img}" width="${px}" height="${px}"
+    alt="Thai road sign ${esc(q.code || '')}" style="width:${px}px;height:${px}px">` : '';
+}
+
+/* ---------- MOCK EXAM ---------- */
+function pool(){ return BANK.filter(q => !(excludeCarOnly && q.car)); }
+
+/* sign options are rebuilt every time the sign is drawn, so repeated papers
+   never let you learn "the answer is ค" instead of learning the sign */
+const freshen = qs => { qs.forEach(q => { if (q.sign) Object.assign(q, signOpts(q.sign)); }); return qs; };
+
+function buildPaper(onlyIds){
+  if (onlyIds) return freshen(shuffle(BANK.filter(q => onlyIds.includes(q.id))).slice(0, TOTAL));
+  const p = pool(), out = [];
+  for (const c in QUOTA){
+    const avail = shuffle(p.filter(q => q.c === c));
+    out.push(...avail.slice(0, QUOTA[c]));
+  }
+  const rest = shuffle(p.filter(q => !out.includes(q)));
+  while (out.length < TOTAL && rest.length) out.push(rest.pop());
+  return freshen(shuffle(out).slice(0, TOTAL));
+}
+
+function startExam(onlyIds){
+  const qs = buildPaper(onlyIds);
+  exam = { qs, pick: new Array(qs.length).fill(null), i: 0,
+           deadline: Date.now() + MINUTES*60000, submitted: false, retry: !!onlyIds };
+  render();
+}
+
+/* The PDF sits next to index.html, so the link is relative; check.js fails if the file is missing. */
+const RES = {pdf:'3.ExamEnglish_6382.pdf', video:'https://youtu.be/HdmqNfGZ9Is'};
+const resourcesCard = () => `<div class="card">
+  <h2 style="margin-top:0">Official material</h2>
+  <p style="margin:0 0 12px"><a href="${RES.pdf}" download>Download the DLT English exam handbook (PDF)</a>
+    <span class="sub" style="display:block;margin:2px 0 0">The source behind the road markings, junction rules and parking distances here.</span></p>
+  <p style="margin:0"><a href="${RES.video}" target="_blank" rel="noopener">Watch: the motorcycle driving test, by the DLT (YouTube)</a>
+    <span class="sub" style="display:block;margin:2px 0 0">Thai audio, episode 16 of the DLT licence section's series. Opens in a new tab and needs internet.</span></p>
+</div>`;
+
+let tick = null;
+function viewMock(v){
+  clearInterval(tick);
+  if (!exam){
+    const hist = load();
+    const wrongIds = hist.length ? hist[hist.length-1].wrong.map(w=>w.id) : [];
+    v.appendChild(el(`<div class="card">
+      <h2 style="margin-top:0">Sit a mock paper</h2>
+      <p>${TOTAL} questions drawn across all categories, ${MINUTES} minutes, no feedback until you
+      submit — the same shape as the DLT touchscreen test. You need <b>${PASS} correct</b> to pass.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="go">Start ${TOTAL}-question mock</button>
+        ${wrongIds.length ? `<button class="btn ghost" id="retry">Retry my ${wrongIds.length} wrong from last time</button>` : ''}
+      </div>
+      <div class="row" style="margin-top:16px">
+        <label class="row" style="gap:6px"><input type="checkbox" id="th" ${showThai?'checked':''}> Show Thai alongside English</label>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="row" style="gap:6px"><input type="checkbox" id="co" ${excludeCarOnly?'checked':''}> Leave out car-only questions (clutch, radiator, 4 wheels)</label>
+      </div>
+      <p class="sub" style="margin-top:14px">Bank: ${pool().length} questions available.</p>
+    </div>`));
+    v.querySelector('#go').onclick = () => startExam(null);
+    const r = v.querySelector('#retry'); if (r) r.onclick = () => startExam(wrongIds);
+    v.querySelector('#th').onchange = e => { showThai = e.target.checked; };
+    v.querySelector('#co').onchange = e => { excludeCarOnly = e.target.checked; render(); };
+    v.appendChild(el(resourcesCard()));
+    return;
+  }
+  if (exam.submitted) return viewResult(v);
+
+  const q = exam.qs[exam.i], n = exam.qs.length;
+  const answered = exam.pick.filter(x => x !== null).length;
+  v.appendChild(el(`<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">${exam.i+1} / ${n} &nbsp;·&nbsp; ${CATS[q.c][0]}</span>
+      <span class="timer" id="clock">--:--</span>
+    </div>
+    <div class="bar"><i style="width:${(answered/n*100).toFixed(1)}%"></i></div>
+    ${q.img ? `<div style="margin:8px 0 14px">${signImg(q,150)}</div>` : ''}
+    ${qText(q)}
+    <div id="opts"></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px">
+      <button class="btn ghost" id="prev" ${exam.i===0?'disabled':''}>&larr; Back</button>
+      <div class="row">
+        <button class="btn ghost" id="skip">Skip</button>
+        ${exam.i===n-1 ? '<button class="btn" id="submit">Submit paper</button>'
+                       : '<button class="btn" id="next">Next &rarr;</button>'}
+      </div>
+    </div>
+    <p class="sub" style="margin:10px 0 0">${answered} of ${n} answered.
+      ${answered<n ? 'Unanswered questions count as wrong.' : 'All answered.'}</p>
+  </div>`));
+
+  const opts = v.querySelector('#opts');
+  q.o.forEach((o, k) => {
+    const b = el(`<button class="opt" aria-pressed="${exam.pick[exam.i]===k}">
+      <b>${THAI_LETTERS[k]}.</b> ${optText(o)}</button>`);
+    b.onclick = () => { exam.pick[exam.i] = k;
+      if (exam.i < n-1) { exam.i++; render(); } else render(); };
+    opts.appendChild(b);
+  });
+  v.querySelector('#prev').onclick = () => { exam.i--; render(); };
+  const nx = v.querySelector('#next'); if (nx) nx.onclick = () => { exam.i++; render(); };
+  v.querySelector('#skip').onclick = () => { if (exam.i < n-1) { exam.i++; render(); } };
+  const sb = v.querySelector('#submit'); if (sb) sb.onclick = submit;
+
+  const clock = v.querySelector('#clock');
+  const paint = () => {
+    const ms = exam.deadline - Date.now();
+    if (ms <= 0) { clearInterval(tick); submit(); return; }
+    const s = Math.floor(ms/1000);
+    clock.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    clock.classList.toggle('low', s < 300);
+  };
+  paint(); tick = setInterval(paint, 1000);
+}
+
+function submit(){
+  clearInterval(tick);
+  exam.submitted = true;
+  const wrong = [], byCat = {};
+  exam.qs.forEach((q, i) => {
+    byCat[q.c] = byCat[q.c] || {n:0, ok:0};
+    byCat[q.c].n++;
+    if (exam.pick[i] === q.a) byCat[q.c].ok++;
+    else wrong.push({id:q.id, picked: exam.pick[i]});
+  });
+  const score = exam.qs.length - wrong.length;
+  exam.result = {score, of: exam.qs.length, wrong, byCat};
+  if (!exam.retry){
+    const h = load();
+    h.push({ when: new Date().toISOString(), score, of: exam.qs.length,
+             byCat, wrong: wrong.map(w => ({id:w.id})) });
+    save(h);
+  }
+  render();
+}
+
+function viewResult(v){
+  const r = exam.result, passed = r.score >= (r.of === TOTAL ? PASS : Math.ceil(r.of*0.9));
+  v.appendChild(el(`<div class="card">
+    <p class="sub" style="margin:0">${exam.retry ? 'Retry of previously wrong questions' : 'Mock paper result'}</p>
+    <div class="row" style="align-items:baseline;gap:10px;margin:6px 0 2px">
+      <span class="big ${passed?'ok':'bad'}">${r.score}<span style="font-size:20px;color:var(--dim)">/${r.of}</span></span>
+      <span class="${passed?'ok':'bad'}" style="font-weight:700">${passed?'PASS':'FAIL'}</span>
+      <span class="pill">${(r.score/r.of*100).toFixed(0)}%</span>
+    </div>
+    <p class="sub">Real threshold: ${PASS} of ${TOTAL} (90%). You may get 5 wrong, no more.</p>
+    <h3>By category</h3>
+    <table><tbody>${Object.keys(r.byCat).map(c => {
+      const b = r.byCat[c], pct = b.ok/b.n*100;
+      return `<tr><td>${CATS[c][0]}<br><span class="th">${CATS[c][1]}</span></td>
+        <td class="mono" style="width:70px">${b.ok}/${b.n}</td>
+        <td style="width:40%"><div class="bar" style="margin:0">
+          <i style="width:${pct}%;background:${pct>=90?'var(--ok)':pct>=70?'var(--warn)':'var(--bad)'}"></i></div></td></tr>`;
+    }).join('')}</tbody></table>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="again">New mock paper</button>
+      ${r.wrong.length ? '<button class="btn ghost" id="dr">Drill these ' + r.wrong.length + ' again</button>' : ''}
+      <button class="btn ghost" id="done">Back</button>
+    </div>
+  </div>`));
+  v.querySelector('#again').onclick = () => startExam(null);
+  v.querySelector('#done').onclick  = () => { exam = null; render(); };
+  const dr = v.querySelector('#dr');
+  if (dr) dr.onclick = () => startExam(r.wrong.map(w => w.id));
+
+  if (r.wrong.length){
+    v.appendChild(el(`<h2>What you got wrong (${r.wrong.length})</h2>`));
+    r.wrong.forEach(w => v.appendChild(qCard(BANK[w.id], w.picked)));
+  } else {
+    v.appendChild(el('<div class="card"><p style="margin:0">Clean sheet. Sit another paper — the pass mark leaves no room, so aim to do this three times running before you book.</p></div>'));
+  }
+}
+
+/* a question card with the answer already revealed */
+function qCard(q, picked){
+  const c = el(`<div class="card">
+    <span class="pill">${CATS[q.c][0]}</span>
+    ${q.img ? `<div style="margin:8px 0">${signImg(q,120)}</div>` : ''}
+    <div style="margin-top:8px">${qText(q)}</div>
+    <div id="o"></div>
+    <div class="why"><b>Why:</b> ${esc(q.w)}</div>
+    ${q.note ? `<p class="note"><b>Heads up:</b> ${esc(q.note)}</p>` : ''}
+    ${q.src ? `<p class="sub" style="margin:8px 0 0">Official source: ${esc(q.src)}</p>` : ''}
+  </div>`);
+  const box = c.querySelector('#o');
+  q.o.forEach((o, k) => {
+    const cls = k === q.a ? 'opt right' : (k === picked ? 'opt wrong' : 'opt');
+    const mark = k === q.a ? ' ✓' : (k === picked ? ' ✗ you picked this' : '');
+    box.appendChild(el(`<div class="${cls}"><b>${THAI_LETTERS[k]}.</b> ${optText(o)}
+      <span style="color:var(--dim);font-size:13px">${mark}</span></div>`));
+  });
+  return c;
+}
+
+/* ---------- STUDY ---------- */
+let studyCat = 'veh';
+function viewStudy(v){
+  v.appendChild(el(`<div class="card">
+    <div class="row">${Object.keys(CATS).map(c =>
+      `<button class="btn ${c===studyCat?'':'ghost'}" data-c="${c}" style="padding:7px 12px;font-size:13.5px">
+        ${CATS[c][0]} <span style="opacity:.6">${BANK.filter(q=>q.c===c).length}</span></button>`).join('')}
+    </div>
+    <label class="row" style="gap:6px;margin-top:12px">
+      <input type="checkbox" id="th" ${showThai?'checked':''}> Show Thai alongside English</label>
+  </div>`));
+  v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { studyCat = b.dataset.c; render(); });
+  v.querySelector('#th').onchange = e => { showThai = e.target.checked; render(); };
+  v.appendChild(el(`<h2>${CATS[studyCat][0]} · <span class="th">${CATS[studyCat][1]}</span></h2>`));
+  BANK.filter(q => q.c === studyCat).forEach(q => v.appendChild(qCard(q, null)));
+}
+
+/* ---------- SIGNS gallery ---------- */
+const FAM_TITLE = {
+  priority:  ['Right of way',            'ป้ายบังคับประเภทกำหนดสิทธิ์'],
+  prohibit:  ['Prohibitions',            'ป้ายห้าม'],
+  noturn:    ['No turning / no U-turn',  'ป้ายห้ามเลี้ยวและห้ามกลับรถ'],
+  novehicle: ['Vehicles banned',         'ป้ายห้ามรถผ่าน'],
+  speed:     ['Speed — maximum vs minimum','จำกัดความเร็ว / ความเร็วขั้นต่ำ'],
+  limit:     ['Weight and size limits',  'ป้ายจำกัดน้ำหนักและขนาด'],
+  direction: ['Commands: direction',     'ป้ายบังคับประเภทคำสั่ง'],
+  lane:      ['Reserved lanes',          'ป้ายช่องเดินรถ'],
+  endzone:   ['End of restriction',      'สุดเขตบังคับ'],
+  curve:     ['Warning: bends',          'ป้ายเตือนทางโค้ง'],
+  junction:  ['Warning: junctions',      'ป้ายเตือนทางแยก'],
+  narrow:    ['Warning: narrowing & closed lanes','ป้ายเตือนทางแคบ'],
+  rail:      ['Warning: level crossings','ป้ายเตือนทางรถไฟ'],
+  gradient:  ['Warning: gradients',      'ป้ายเตือนทางลาดชัน'],
+  surface:   ['Warning: road surface',   'ป้ายเตือนสภาพผิวทาง'],
+  laneflow:  ['Warning: merging & carriageways','ป้ายเตือนการรวมช่องจราจร'],
+  uturn:     ['Warning: U-turn points',  'ป้ายเตือนจุดกลับรถ'],
+  aheadwarn: ['Warning: what is ahead',  'ป้ายเตือนล่วงหน้า'],
+  people:    ['Warning: people & animals','ป้ายเตือนคนและสัตว์'],
+  marker:    ['Alignment & obstruction markers','เตือนแนวทางและสิ่งกีดขวาง'],
+  workwarn:  ['Roadworks: pictogram warnings','ป้ายเตือนในงานก่อสร้าง (ตก)'],
+  divert:    ['Roadworks: diversions',    'เบี่ยงเบนการจราจร'],
+  work:      ['Roadworks: text signs',    'ป้ายข้อความในงานก่อสร้าง (ตค)'],
+  guide:     ['Guide & information signs','ป้ายแนะนำ']
+};
+function viewSigns(v){
+  v.appendChild(el(`<div class="card">
+    <p style="margin:0 0 10px">All <b>${SIGNS.length}</b> signs, as the real DLT artwork:
+    <b>บ-</b> regulatory, <b>ต-</b> warning, <b>ตก-</b> roadworks pictograms,
+    <b>ตค-</b> roadworks text, <b>น-</b> guide. Signs are the cheapest marks on the paper — they
+    are pictures, so the language barrier does not apply.</p>
+    <p style="margin:0 0 6px"><b>Learn the shape and colour logic first.</b> It lets you answer signs
+    you have never seen:</p>
+    <ul style="margin:0;padding-left:20px">
+      <li><b>Red ring, octagon or triangle</b> — ป้ายบังคับ. Enforceable: you must, or must not.</li>
+      <li><b>Blue disc, white symbol</b> — also ป้ายบังคับ, but a command: do <i>this</i>.</li>
+      <li><b>Blue disc with a red ring</b> — one slash = no parking, a cross = no stopping.</li>
+      <li><b>Yellow diamond</b> — ป้ายเตือน. A warning only, no command attached.</li>
+      <li><b>Orange</b> — temporary roadworks. Nearly all of these print their English on the sign,
+        so they are free marks once you know orange means "works", not "danger".</li>
+    </ul>
+    <p style="margin:10px 0 0;font-size:14px;color:var(--dim)">Grouped below by the families the
+    exam confuses on purpose. Each group is worth reading side by side.</p></div>`));
+  Object.keys(FAM_TITLE).forEach(f => {
+    const list = SIGNS.filter(s => s.fam === f);
+    if (!list.length) return;
+    v.appendChild(el(`<h2>${FAM_TITLE[f][0]} · <span class="th">${FAM_TITLE[f][1]}</span>
+      <span class="pill">${list.length}</span></h2>`));
+    list.forEach(s => v.appendChild(el(
+      `<div class="card"><div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">
+        ${signImg(s,96)}
+        <div style="flex:1;min-width:0">
+          <p style="margin:0 0 2px;font-weight:600">${esc(s.en)}
+            <span class="pill" style="margin-left:4px">${esc(s.code)}</span>
+            ${s.gallery ? '<span class="pill" style="margin-left:2px">recognise only</span>' : ''}</p>
+          <p class="th" style="margin:0 0 7px">${esc(s.th)}</p>
+          <p style="margin:0;font-size:14px;color:var(--dim)">${esc(s.w)}</p>
+        </div></div></div>`)));
+  });
+}
+
+/* ---------- KEY NUMBERS ---------- */
+const NUMBERS = [
+ ['7 days','ticket fine payment · change of vehicle colour'],
+ ['15 days','replacement licence · vehicle transfer · appeal a suspension'],
+ ['1 month','how recent the medical certificate must be'],
+ ['90 days','window to retake a failed theory test'],
+ ['2 years','validity of the temporary licence you will be issued'],
+ ['5 years','private licence validity · motorcycle inspection age'],
+ ['7 years','car inspection age'],
+ ['6 months','how far ahead a 5-year licence can be renewed'],
+ ['3 years','expired beyond this = retake theory AND practical'],
+ ['25 cm','maximum distance from the kerb when parking'],
+ ['30 m','signal before a turn'],
+ ['60 m','turn signal must be visible from this far · no overtaking below this visibility'],
+ ['150 m','head and tail lights must be visible from this far'],
+ ['5 m','STOP this far short of a railway track when a train is coming'],
+ ['3 m','no parking on, or within this distance of, a pedestrian crossing'],
+ ['10 m','no parking at, or within this distance of, a junction'],
+ ['15 m','no PARKING within this distance of a railway crossing — not the same as the 5 m stop'],
+ ['2.50 m','maximum load overhang at the REAR'],
+ ['1 m','lateral gap to keep from parked and moving vehicles'],
+ ['60 km/h','motorcycle speed in a built-up area (bank answer)'],
+ ['90 km/h','speed outside Bangkok / Pattaya / a municipality (bank answer)'],
+ ['80–95 °C','normal engine operating temperature'],
+ ['1% per month','surcharge on late road tax'],
+ ['1,000 baht','no licence · no plate · no lights in poor visibility · excessive noise'],
+ ['2,000 baht','EXPIRED licence — heavier than having none'],
+ ['200 baht','pedestrian crossing outside a zebra within 100 m of one'],
+ ['5,000–20,000 baht','over the alcohol limit, plus up to 1 year and a 6-month suspension'],
+ ['50 mg%','the alcohol limit for an ordinary driver'],
+ ['20 mg%','the alcohol limit on a TEMPORARY licence, under 20, or with no licence — this is you'],
+ ['5 hours','the DLT training course for a first-time applicant'],
+ ['15 hours','an accredited private driving-school course'],
+ ['50 / 45 / 60','questions / needed to pass / minutes'],
+ ['5 stations','the motorcycle practical test: plank, Z bend, S bend, obstacle, signs'],
+ ['15 / 18','minimum age: 15 for a motorcycle up to 110 cc, 18 for anything else']
+];
+function viewNumbers(v){
+  v.appendChild(el(`<div class="card"><p style="margin:0">Most of what you can actually lose marks on
+  is a number. Learn this table and the traps below it; everything else on the paper is common sense
+  plus the sign shapes.</p></div>`));
+  v.appendChild(el(`<div class="card" style="padding:8px 16px"><table><tbody>${
+    NUMBERS.map(([n,d]) => `<tr><td class="mono" style="font-weight:700;white-space:nowrap">${n}</td><td>${d}</td></tr>`).join('')
+  }</tbody></table></div>`));
+  v.appendChild(el(`<h2>The traps</h2>
+  <div class="card" style="border-left:3px solid var(--bad)">
+  <p style="margin:0"><b>0. Give way to the LEFT, not the right.</b> Two vehicles reach an
+     unsignalised junction at the same time, nobody already in it: the vehicle on your
+     <b>left</b> goes first. Land Traffic Act s.71(2), and the DLT English book teaches the same
+     (p.45 Q27, Q29). A great many Thai practice sites print "give way to the right" here and are
+     wrong. The <i>roundabout</i> answer really is "right", but for a different reason — s.71(1),
+     give way to whoever is <b>already in</b> the junction, who in a roundabout comes from your
+     right. Two different rules; know which one you are being asked.</p></div>
+  <div class="card">
+  <p><b>1. No licence vs expired licence.</b> No licence = 1 month / 1,000 baht.
+     Expired = 2,000 baht. The heavier penalty is for the expired one.</p>
+  <p><b>2. Flashing red vs flashing amber.</b> Red = come to a full stop, then go when safe.
+     Amber = slow down and proceed. Different answers, adjacent questions.</p>
+  <p><b>3. 30 m vs 60 m vs 150 m.</b> Signal 30 m before turning; the signal must be visible from
+     60 m; head and tail lights from 150 m. Also 60 m is the visibility below which overtaking
+     is banned.</p>
+  <p><b>4. The officer's arms.</b> Left arm extended sideways = traffic <b>behind</b> stops.
+     Right forearm raised, palm up = traffic <b>in front</b> stops.</p>
+  <p><b>5. "First" after a crash.</b> If the question mentions an injured person, the first act is
+     <b>first aid</b>. If it does not, the first act is <b>warning other traffic</b>. Read the stem.</p>
+  <p><b>Bonus — negative stems.</b> "ข้อใดไม่ใช่" / "which is NOT" / "which should you not do" appears
+     often. Slow down and re-read; this is where most failures happen.</p>
+  <p><b>Bonus — etiquette questions.</b> The correct answer is always the longest, calmest,
+     most other-regarding option. Never the one that involves the horn, high beam or acceleration.</p>
+  <p><b>Bonus — solid vs broken.</b> Every road marking follows one idea: <b>solid = prohibited,
+     broken = permitted</b>. Colour tells you what the line separates (white = lanes going the same
+     way, yellow = opposing directions); the pattern tells you what you may do. On a mixed
+     solid-plus-broken pair, the line on <i>your</i> side is the one that governs you.</p>
+  <p><b>Bonus — the 5 m / 15 m railway pair.</b> STOP at least 5 m short of the track when a train
+     is coming. Never PARK within 15 m of the crossing. Two rules, two numbers, both examined.</p>
+  </div>`));
+}
+
+/* ---------- PROCESS ---------- */
+function viewProcess(v){
+  v.innerHTML = `${resourcesCard()}
+  <div class="card"><p style="margin:0"><b>Bangkok offices.</b>
+    Chatuchak (Area 1, ตลาดนัดจตุจักร / Phahonyothin) and Bang Khun Thian (Area 3) are the two
+    that regularly deal with foreigners; Area 2 (Taling Chan) and Area 4 (Nong Khaem) also issue
+    licences. Book a slot on <b>DLT Smart Queue</b> — the <i>DLT Smart Queue</i> app or
+    <a href="https://gecc.dlt.go.th">gecc.dlt.go.th</a>. Walk-ins are possible but you may be
+    turned away by 09:00.</p></div>
+
+  <div class="card" style="border-left:3px solid var(--warn)">
+    <p style="margin:0"><b>Phone the office before you go</b> and ask two things:
+    (1) is the theory test terminal available in English today, and (2) which proof of address they
+    will accept from you. Both vary by office and by who is on the desk. This one call is worth
+    more than anything else on this page.</p></div>
+
+  <h2>What you need to bring</h2>
+  <div class="card">
+    <p><b>Passport</b> — original plus a photocopy of the photo page and of your current visa /
+       entry stamp. Sign every copy.</p>
+    <p><b>Proof of address in Thailand</b> — any ONE of:
+       a <i>Certificate of Residence</i> from Immigration (Chaeng Watthana; small fee, sometimes
+       same-day, sometimes a week), a residence letter from your embassy, a valid
+       <i>work permit</i>, a <i>pink ID card</i>, or a <i>yellow house book</i> (ทะเบียนบ้านเหลือง).
+       A work permit is the smoothest if you have one.</p>
+    <p><b>Medical certificate</b> (ใบรับรองแพทย์) — issued within the last <b>1 month</b>,
+       on the 5-disease form. Any clinic, 100–200 baht, 15 minutes. Do not get it weeks early.</p>
+    <p><b>Two passport photos</b> — some offices photograph you on site, some still want prints.
+       Bring them.</p>
+    <p style="margin-bottom:0"><b>Money</b> — cash. Motorcycle licence fee is about 105 baht,
+       plus small charges for the test and the card.</p>
+  </div>
+
+  <h2>The four steps, in order</h2>
+  <div class="card">
+    <p><b>1 · Physical / ability test</b> (ทดสอบสมรรถภาพร่างกาย) — four short machine tests:
+       colour recognition (red / amber / green), depth perception (line up two poles at a distance),
+       peripheral vision, and brake reaction time. No Thai needed; the staff will mime it.
+       If you wear glasses, wear them.</p>
+    <p><b>2 · The 5-hour theory course</b> (อบรม 5 ชั่วโมง) — mandatory for a first-time licence.
+       Held at the office, usually one full morning-to-afternoon block, or online through the DLT
+       e-learning system. <b>It is delivered in Thai.</b> You must be present for all five hours;
+       they check. Bring something to read, and do not leave early — no certificate, no test.</p>
+    <p><b>3 · The written theory test</b> — 50 questions on a touchscreen, 60 minutes, delivered as
+       two blocks of 25. You need 45 right. English is normally selectable at the terminal in
+       Bangkok. Fail and you can usually retry the next working day, and within 90 days without
+       repeating the course.</p>
+    <p style="margin-bottom:0"><b>4 · The practical riding test</b> — five stations, in this order:
+       balance along a narrow raised plank without putting a foot down, a Z bend, an S bend,
+       obstacle avoidance, and riding a short circuit while obeying the signs, signals and
+       indicators. Bring your own bike if you can, or use theirs.
+       <b>The plank is what fails people.</b> Look up and far ahead, stay in a high enough gear to
+       avoid stalling, feather the clutch, and do not look down at the plank.</p>
+  </div>
+
+  <h2>What you get</h2>
+  <div class="card"><p style="margin:0">A <b>2-year temporary licence</b>
+    (ใบอนุญาตขับรถชั่วคราว). After that you convert it to the 5-year private licence — a much
+    shorter appointment: no theory test, no practical, just a 1-hour refresher and the ability test.
+    You can start that conversion up to 6 months before it expires.</p></div>
+
+  <div class="card" style="border-left:3px solid var(--warn)"><p style="margin:0">
+    <b>One correction worth knowing.</b> If you ever hold a home-country licence <i>with a
+    motorcycle category</i>, or an International Driving Permit covering motorcycles, the DLT can
+    waive both the written and the practical test. A car-only licence buys you nothing here — a Thai
+    motorcycle licence is a separate class and must be earned separately. That is the position you
+    are in, hence the full route above.</p></div>`;
+}
+
+/* ---------- PHRASES ---------- */
+const PHRASES = [
+ ['ผมมาทำใบขับขี่รถจักรยานยนต์ครับ','phom maa tham bai-kap-kee rot jak-kra-yaan-yon khrap',
+  'I am here to get a motorcycle licence.'],
+ ['ขอสอบเป็นภาษาอังกฤษได้ไหมครับ','khaw sawp pen paa-saa ang-krit dai mai khrap',
+  'Can I take the test in English?'],
+ ['ผมไม่พูดภาษาไทยครับ ขอโทษครับ','phom mai puut paa-saa thai khrap, khaw thoot khrap',
+  'I do not speak Thai. Sorry.'],
+ ['อบรม 5 ชั่วโมง วันไหนครับ','ob-rom haa chua-mong wan nai khrap',
+  'Which day is the 5-hour course?'],
+ ['ผมจองคิวออนไลน์มาแล้วครับ','phom jong kiu on-line maa laew khrap',
+  'I already booked online.'],
+ ['เอกสารครบไหมครับ','eek-ka-saan khrop mai khrap',
+  'Are my documents complete?'],
+ ['ต้องใช้เอกสารอะไรอีกครับ','tong chai eek-ka-saan a-rai eek khrap',
+  'What other documents do I need?'],
+ ['ใบรับรองแพทย์','bai rap-rong paet','medical certificate'],
+ ['หนังสือรับรองที่พักอาศัย','nang-sue rap-rong tee pak aa-sai','certificate of residence'],
+ ['ใบอนุญาตทำงาน','bai a-nu-yaat tham ngaan','work permit'],
+ ['สอบข้อเขียน','sawp khaw-khian','written test'],
+ ['สอบปฏิบัติ','sawp pa-ti-bat','practical test'],
+ ['ผ่าน / ไม่ผ่าน','paan / mai paan','pass / fail'],
+ ['สอบใหม่ได้เมื่อไหร่ครับ','sawp mai dai muea-rai khrap','When can I retake it?'],
+ ['ค่าธรรมเนียมเท่าไหร่ครับ','kha tham-niam tao-rai khrap','How much is the fee?'],
+ ['ช่องไหนครับ','chong nai khrap','Which counter / window?'],
+ ['รอที่นี่ใช่ไหมครับ','ror tee nee chai mai khrap','Do I wait here?'],
+ ['ขอบคุณครับ','khop khun khrap','Thank you.']
+];
+function viewPhrases(v){
+  v.appendChild(el(`<div class="card"><p style="margin:0">The desk staff will get you through this
+  even with no shared language, but these fifteen lines remove almost all of the friction.
+  <b>ครับ (khrap)</b> at the end of every sentence is the polite particle for a male speaker —
+  use it every time.</p></div>`));
+  v.appendChild(el(`<div class="card" style="padding:8px 16px"><table>
+    <thead><tr><th>Thai</th><th>Say it</th><th>Meaning</th></tr></thead>
+    <tbody>${PHRASES.map(([t,r,e]) =>
+      `<tr><td class="th" style="font-size:15px">${t}</td>
+        <td style="font-style:italic;color:var(--dim);font-size:13.5px">${r}</td>
+        <td>${e}</td></tr>`).join('')}</tbody></table></div>`));
+}
+
+/* ---------- HISTORY ---------- */
+function viewHistory(v){
+  const h = load();
+  if (!h.length){
+    v.appendChild(el('<div class="card"><p style="margin:0">No attempts recorded yet. Sit a mock paper and it will show up here.</p></div>'));
+    return;
+  }
+  const W = 700, H = 190, P = 34;
+  const xs = i => P + (h.length === 1 ? (W-2*P)/2 : i*(W-2*P)/(h.length-1));
+  const ys = s => H - P - (s/50)*(H-2*P);
+  const line = h.map((a,i) => `${xs(i).toFixed(1)},${ys(a.score/a.of*50).toFixed(1)}`).join(' ');
+  v.appendChild(el(`<div class="card">
+    <h2 style="margin-top:0">Score history <span class="pill">${h.length} attempt${h.length>1?'s':''}</span></h2>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible">
+      <line x1="${P}" y1="${ys(45)}" x2="${W-P}" y2="${ys(45)}" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="${W-P+4}" y="${ys(45)+4}" font-size="11" fill="var(--ok)">45 pass</text>
+      <line x1="${P}" y1="${ys(0)}" x2="${W-P}" y2="${ys(0)}" stroke="var(--line)"/>
+      <text x="${P-6}" y="${ys(50)+4}" font-size="11" fill="var(--dim)" text-anchor="end">50</text>
+      <text x="${P-6}" y="${ys(0)+4}"  font-size="11" fill="var(--dim)" text-anchor="end">0</text>
+      <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+      ${h.map((a,i) => {
+        const s = a.score/a.of*50;
+        return `<circle cx="${xs(i).toFixed(1)}" cy="${ys(s).toFixed(1)}" r="4.5"
+                 fill="${s>=45?'var(--ok)':'var(--bad)'}"/>
+                <text x="${xs(i).toFixed(1)}" y="${ys(s)-10}" font-size="11" fill="var(--dim)"
+                 text-anchor="middle">${a.score}</text>`; }).join('')}
+    </svg>
+    <p class="sub" style="margin:4px 0 0">Scores normalised to a 50-question paper. Aim for three
+    consecutive papers at 47+ before you book the test — 45 leaves no margin for a badly worded
+    question on the day.</p>
+  </div>`));
+
+  const cats = Object.keys(CATS);
+  const agg = {};
+  cats.forEach(c => agg[c] = {n:0, ok:0});
+  h.forEach(a => { for (const c in (a.byCat||{})) {
+    if (!agg[c]) agg[c] = {n:0, ok:0};
+    agg[c].n += a.byCat[c].n; agg[c].ok += a.byCat[c].ok; } });
+  const weak = cats.filter(c => agg[c].n).sort((x,y) => agg[x].ok/agg[x].n - agg[y].ok/agg[y].n);
+  v.appendChild(el(`<div class="card">
+    <h2 style="margin-top:0">Weakest categories, all attempts pooled</h2>
+    <table><tbody>${weak.map(c => {
+      const b = agg[c], pct = b.ok/b.n*100;
+      return `<tr><td>${CATS[c][0]}</td><td class="mono" style="width:70px">${b.ok}/${b.n}</td>
+        <td class="mono" style="width:50px">${pct.toFixed(0)}%</td>
+        <td style="width:40%"><div class="bar" style="margin:0"><i style="width:${pct}%;
+          background:${pct>=90?'var(--ok)':pct>=70?'var(--warn)':'var(--bad)'}"></i></div></td></tr>`;
+    }).join('')}</tbody></table>
+    <p class="sub">Anything under 90% here will cost you the paper. Go to Study and read that
+    category end to end.</p>
+  </div>`));
+
+  v.appendChild(el(`<div class="card" style="padding:8px 16px"><table>
+    <thead><tr><th>#</th><th>When</th><th>Score</th><th>%</th><th></th></tr></thead>
+    <tbody>${h.map((a,i) => {
+      const pct = a.score/a.of*100, ok = pct >= 90;
+      return `<tr><td class="mono">${i+1}</td>
+        <td>${new Date(a.when).toLocaleString()}</td>
+        <td class="mono">${a.score}/${a.of}</td>
+        <td class="mono">${pct.toFixed(0)}%</td>
+        <td class="${ok?'ok':'bad'}" style="font-weight:600">${ok?'pass':'fail'}</td></tr>`;
+    }).reverse().join('')}</tbody></table></div>`));
+
+  const b = el('<div class="row"><button class="btn ghost" id="clr">Clear history</button></div>');
+  b.querySelector('#clr').onclick = () => {
+    if (confirm('Delete all '+h.length+' recorded attempts? This cannot be undone.')) {
+      localStorage.removeItem(KEY); render();
+    }
+  };
+  v.appendChild(b);
+}
+
+/* ---------- self-check: run with ?selftest ---------- */
+function selftest(){
+  const errs = [];
+  BANK.forEach(q => {
+    if (!q.o || q.o.length !== 4) errs.push(`${q.id}: needs exactly 4 options`);
+    if (!(q.a >= 0 && q.a < 4)) errs.push(`${q.id}: answer index out of range`);
+    if (!q.en || !q.th || !q.w) errs.push(`${q.id}: missing en / th / why`);
+    q.o.forEach((o,k) => { if (!o[0] || !o[1]) errs.push(`${q.id}.${k}: option missing a language`); });
+    const seen = new Set(q.o.map(o => o[1]));
+    if (seen.size !== 4) errs.push(`${q.id}: duplicate English options`);
+  });
+  /* every sign must carry artwork, a code and a family */
+  SIGNS.forEach(s => {
+    if (!s.img || !/^signs\/[a-z0-9-]+\.png$/.test(s.img)) errs.push(`${s.code}: bad img path ${s.img}`);
+    if (!s.code || !s.th || !s.en || !s.w || !s.fam) errs.push(`${s.code}: missing a field`);
+  });
+  /* gallery-only signs must be visible in the gallery but never asked */
+  const asked = new Set(BANK.filter(q => q.sign).map(q => q.code));
+  SIGNS.filter(s => s.gallery).forEach(s => {
+    if (asked.has(s.code)) errs.push(`${s.code}: gallery-only sign was turned into a question`);
+  });
+  SIGNS.filter(s => !s.gallery).forEach(s => {
+    if (!asked.has(s.code)) errs.push(`${s.code}: askable sign is missing from the bank`);
+  });
+  /* every distractor group must be able to supply 3 same-group wrong answers, or the
+     question leaks its answer by offering obviously unrelated options */
+  Object.keys(SIGN_GRP).forEach(g => {
+    const distinct = new Set(SIGN_GRP[g].map(s => s.en)).size;
+    if (distinct < 4) errs.push(`distractor group "${g}" has only ${distinct} distinct meanings, needs 4`);
+  });
+  /* regenerated sign options must always be 4 distinct choices containing the right one,
+     and all three distractors must come from the same group */
+  for (let t = 0; t < 600; t++){
+    const s = SIGNS[(Math.random()*SIGNS.length)|0], r = signOpts(s);
+    if (r.o.length !== 4) errs.push(`${s.code}: ${r.o.length} options`);
+    if (new Set(r.o.map(o => o[1])).size !== 4) errs.push(`${s.code}: duplicate option text`);
+    if (r.o[r.a][1] !== s.en) errs.push(`${s.code}: answer index points at "${r.o[r.a][1]}"`);
+    const foreign = r.o.filter(o => o[1] !== s.en)
+      .filter(o => !SIGN_GRP[gkey(s)].some(x => x.en === o[1]));
+    if (foreign.length) errs.push(`${s.code}: ${foreign.length} distractor(s) from outside its group`);
+  }
+  /* a paper must be exactly TOTAL questions, all distinct, and carry no car-only items */
+  for (let t = 0; t < 200; t++){
+    const p = buildPaper(null);
+    if (p.length !== TOTAL) errs.push(`paper ${t}: ${p.length} questions, expected ${TOTAL}`);
+    if (new Set(p.map(q => q.id)).size !== p.length) errs.push(`paper ${t}: duplicate question`);
+    if (p.some(q => q.car)) errs.push(`paper ${t}: contains a car-only question`);
+    p.forEach(q => { if (q.sign && q.o[q.a][1] !== q.sign.en)
+      errs.push(`paper ${t}: freshened sign ${q.code} lost its answer`); });
+  }
+  /* end to end: sit a paper, answer it, check the scoring and the 45/50 gate.
+     localStorage is snapshotted so a self-test never pollutes real attempt history. */
+  let e2e = 0;
+  if (typeof document.createElement === 'function' && document.getElementById('view')){
+    const snapshot = localStorage.getItem(KEY);
+    try {
+      [0, 5, 6, 50].forEach(nWrong => {
+        startExam(null);
+        exam.qs.forEach((q, i) => exam.pick[i] = q.a);
+        for (let i = 0; i < nWrong; i++) exam.pick[i] = (exam.qs[i].a + 1) % 4;
+        submit();
+        const r = exam.result, expect = TOTAL - nWrong;
+        if (r.score !== expect) errs.push(`e2e ${nWrong} wrong: score ${r.score}, expected ${expect}`);
+        if (r.wrong.length !== nWrong) errs.push(`e2e ${nWrong} wrong: listed ${r.wrong.length}`);
+        if ((r.score >= PASS) !== (nWrong <= 5)) errs.push(`e2e ${nWrong} wrong: pass gate wrong`);
+        const seen = Object.keys(r.byCat).reduce((a, c) => a + r.byCat[c].n, 0);
+        if (seen !== TOTAL) errs.push(`e2e ${nWrong} wrong: byCat totals ${seen}, expected ${TOTAL}`);
+        e2e++;
+      });
+      /* unanswered must count as wrong, not as correct */
+      startExam(null);
+      exam.qs.forEach((q, i) => exam.pick[i] = q.a);
+      exam.pick[0] = null; exam.pick[1] = null;
+      submit();
+      if (exam.result.score !== TOTAL - 2) errs.push(`e2e: unanswered scored ${exam.result.score}, expected ${TOTAL-2}`);
+      e2e++;
+    } finally {
+      exam = null;
+      if (snapshot === null) localStorage.removeItem(KEY); else localStorage.setItem(KEY, snapshot);
+    }
+  }
+  const out = errs.length ? 'FAIL\n' + errs.join('\n')
+    : `PASS — ${BANK.length} questions, 200 papers built clean, ${e2e} end-to-end papers scored correctly`;
+  document.body.innerHTML = `<pre style="padding:20px;white-space:pre-wrap;font:13px ui-monospace,monospace">${esc(out)}</pre>`;
+  console.log(out);
+}
+
+const fromHash = location.hash.slice(1);
+if (TABS.some(([k]) => k === fromHash)) tab = fromHash;
+if (location.search.includes('selftest')) selftest();
+/* #exam = straight into a fresh paper. #exam-sign, #exam-trf, … = one category
+   under exam conditions; those are not written to history. */
+else if (fromHash === 'exam') startExam(null);
+else if (fromHash.startsWith('exam-') && CATS[fromHash.slice(5)])
+  startExam(BANK.filter(q => q.c === fromHash.slice(5)).map(q => q.id));
+else render();
+</script>
+</body>
+</html>
