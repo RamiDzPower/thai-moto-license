@@ -63,6 +63,13 @@ th{color:var(--dim);font-weight:600;font-size:12.5px}
 /* the sign PNGs are transparent with black glyphs, so they MUST sit on white —
    on the dark card background the arrows and figures would disappear */
 .sign{object-fit:contain;background:#fff;border-radius:10px;padding:5px;display:block}
+.pager{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0}
+.pager button{min-width:40px;min-height:40px;padding:6px 10px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.pager button[aria-current=page]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .gap{color:var(--dim);padding:0 2px}
+.pager .count{margin-left:auto;font-size:12.5px;color:var(--dim)}
 .mono{font-variant-numeric:tabular-nums}
 .timer{font-variant-numeric:tabular-nums;font-weight:600}
 .timer.low{color:var(--bad)}
@@ -109,6 +116,15 @@ const save = a => localStorage.setItem(KEY, JSON.stringify(a));
 const el = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstChild; };
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+/* ---------- paging (Study and Signs) ---------- */
+const PAGE_SIZE = {study: 6, signs: 12};   // Study cards are tall, sign cards are short
+const pageNo = {study: 1, signs: 1};
+/* page numbers to show: first, last, and the current page with one neighbour each side */
+const pageWindow = (cur, pages) =>
+  [...new Set([1, cur-1, cur, cur+1, pages].filter(n => n >= 1 && n <= pages))].sort((a, b) => a - b);
+const pageCount = (total, size) => Math.max(1, Math.ceil(total / size));
+const pageSlice = (arr, page, size) => arr.slice((page-1)*size, page*size);
 
 /* ---------- merge signs into the bank ----------
    A sign question's three wrong options are drawn from the SAME family first
@@ -379,6 +395,30 @@ function qCard(q, picked){
   return c;
 }
 
+/* ---------- numbered pager ---------- */
+function pagerHtml(key, total){
+  const size = PAGE_SIZE[key], pages = pageCount(total, size);
+  if (pages < 2) return '';
+  const cur = pageNo[key] = Math.min(Math.max(1, pageNo[key]), pages);
+  let prev = 0, nums = '';
+  pageWindow(cur, pages).forEach(n => {
+    if (n - prev > 1) nums += '<span class="gap">…</span>';
+    nums += `<button data-p="${n}" ${n === cur ? 'aria-current="page"' : ''} aria-label="Page ${n}">${n}</button>`;
+    prev = n;
+  });
+  const from = (cur-1)*size + 1, to = Math.min(cur*size, total);
+  return `<div class="pager" data-pager="${key}">
+    <button data-p="${cur-1}" ${cur === 1 ? 'disabled' : ''}>&lsaquo; Prev</button>${nums}
+    <button data-p="${cur+1}" ${cur === pages ? 'disabled' : ''}>Next &rsaquo;</button>
+    <span class="count">${from}-${to} of ${total}</span></div>`;
+}
+function wirePagers(v, key){
+  v.querySelectorAll(`[data-pager="${key}"] button`).forEach(b => b.onclick = () => {
+    pageNo[key] = +b.dataset.p; history.replaceState(null, '', `#${key}/${pageNo[key]}`);
+    render(); scrollTo(0, 0);
+  });
+}
+
 /* ---------- STUDY ---------- */
 let studyCat = 'veh';
 function viewStudy(v){
@@ -390,10 +430,14 @@ function viewStudy(v){
     <label class="row" style="gap:6px;margin-top:12px">
       <input type="checkbox" id="th" ${showThai?'checked':''}> Show Thai alongside English</label>
   </div>`));
-  v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { studyCat = b.dataset.c; render(); });
+  v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { studyCat = b.dataset.c; pageNo.study = 1; render(); });
   v.querySelector('#th').onchange = e => { showThai = e.target.checked; render(); };
   v.appendChild(el(`<h2>${CATS[studyCat][0]} · <span class="th">${CATS[studyCat][1]}</span></h2>`));
-  BANK.filter(q => q.c === studyCat).forEach(q => v.appendChild(qCard(q, null)));
+  const all = BANK.filter(q => q.c === studyCat), pager = pagerHtml('study', all.length);
+  if (pager) v.appendChild(el(pager));
+  pageSlice(all, pageNo.study, PAGE_SIZE.study).forEach(q => v.appendChild(qCard(q, null)));
+  if (pager) v.appendChild(el(pagerHtml('study', all.length)));
+  wirePagers(v, 'study');
 }
 
 /* ---------- SIGNS gallery ---------- */
@@ -424,7 +468,7 @@ const FAM_TITLE = {
   guide:     ['Guide & information signs','ป้ายแนะนำ']
 };
 function viewSigns(v){
-  v.appendChild(el(`<div class="card">
+  if (pageNo.signs === 1) v.appendChild(el(`<div class="card">
     <p style="margin:0 0 10px">All <b>${SIGNS.length}</b> signs, as the real DLT artwork:
     <b>บ-</b> regulatory, <b>ต-</b> warning, <b>ตก-</b> roadworks pictograms,
     <b>ตค-</b> roadworks text, <b>น-</b> guide. Signs are the cheapest marks on the paper — they
@@ -441,12 +485,19 @@ function viewSigns(v){
     </ul>
     <p style="margin:10px 0 0;font-size:14px;color:var(--dim)">Grouped below by the families the
     exam confuses on purpose. Each group is worth reading side by side.</p></div>`));
-  Object.keys(FAM_TITLE).forEach(f => {
-    const list = SIGNS.filter(s => s.fam === f);
-    if (!list.length) return;
-    v.appendChild(el(`<h2>${FAM_TITLE[f][0]} · <span class="th">${FAM_TITLE[f][1]}</span>
-      <span class="pill">${list.length}</span></h2>`));
-    list.forEach(s => v.appendChild(el(
+  /* one flat list in family order, paged; a family heading is drawn wherever the family changes */
+  const ordered = Object.keys(FAM_TITLE).flatMap(f => SIGNS.filter(s => s.fam === f));
+  const pager = pagerHtml('signs', ordered.length);
+  if (pager) v.appendChild(el(pager));
+  let lastFam = null;
+  pageSlice(ordered, pageNo.signs, PAGE_SIZE.signs).forEach(s => {
+    if (s.fam !== lastFam) {
+      const inFam = SIGNS.filter(x => x.fam === s.fam), contd = inFam[0] !== s && lastFam === null;
+      v.appendChild(el(`<h2>${FAM_TITLE[s.fam][0]} · <span class="th">${FAM_TITLE[s.fam][1]}</span>
+        <span class="pill">${inFam.length}</span>${contd ? ' <span class="sub">continued</span>' : ''}</h2>`));
+      lastFam = s.fam;
+    }
+    v.appendChild(el(
       `<div class="card"><div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">
         ${signImg(s,96)}
         <div style="flex:1;min-width:0">
@@ -455,8 +506,10 @@ function viewSigns(v){
             ${s.gallery ? '<span class="pill" style="margin-left:2px">recognise only</span>' : ''}</p>
           <p class="th" style="margin:0 0 7px">${esc(s.th)}</p>
           <p style="margin:0;font-size:14px;color:var(--dim)">${esc(s.w)}</p>
-        </div></div></div>`)));
+        </div></div></div>`));
   });
+  if (pager) v.appendChild(el(pagerHtml('signs', ordered.length)));
+  wirePagers(v, 'signs');
 }
 
 /* ---------- KEY NUMBERS ---------- */
@@ -735,6 +788,18 @@ function selftest(){
     if (!s.img || !/^signs\/[a-z0-9-]+\.png$/.test(s.img)) errs.push(`${s.code}: bad img path ${s.img}`);
     if (!s.code || !s.th || !s.en || !s.w || !s.fam) errs.push(`${s.code}: missing a field`);
   });
+  /* paging: the number window keeps first, last and current; the pages tile every list in order */
+  for (let pages = 1; pages <= 40; pages++) for (let cur = 1; cur <= pages; cur++) {
+    const w = pageWindow(cur, pages);
+    if (![1, cur, pages].every(n => w.includes(n))) errs.push(`pageWindow(${cur},${pages}) lost an anchor page`);
+    if (w.length > 5 || w.some((n, i) => i && n <= w[i-1])) errs.push(`pageWindow(${cur},${pages}) is unsorted or too long`);
+  }
+  const tile = (arr, size) => { const out = []; for (let p = 1; p <= pageCount(arr.length, size); p++) out.push(...pageSlice(arr, p, size)); return out; };
+  [...Object.keys(CATS).map(c => ['Study ' + c, BANK.filter(q => q.c === c), PAGE_SIZE.study]),
+   ['Signs', SIGNS, PAGE_SIZE.signs]].forEach(([name, arr, size]) => {
+    const t = tile(arr, size);
+    if (t.length !== arr.length || t.some((x, i) => x !== arr[i])) errs.push(`${name}: pages do not tile the list`);
+  });
   /* gallery-only signs must be visible in the gallery but never asked */
   const asked = new Set(BANK.filter(q => q.sign).map(q => q.code));
   SIGNS.filter(s => s.gallery).forEach(s => {
@@ -806,8 +871,10 @@ function selftest(){
   console.log(out);
 }
 
-const fromHash = location.hash.slice(1);
+const fromHash = location.hash.slice(1).split('/')[0];
+const fromPage = +location.hash.split('/')[1] || 1;       // #signs/3 opens page 3
 if (TABS.some(([k]) => k === fromHash)) tab = fromHash;
+if (pageNo[fromHash] !== undefined) pageNo[fromHash] = fromPage;
 if (location.search.includes('selftest')) selftest();
 /* #exam = straight into a fresh paper. #exam-sign, #exam-trf, … = one category
    under exam conditions; those are not written to history. */

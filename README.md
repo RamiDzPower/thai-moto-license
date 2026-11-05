@@ -7,11 +7,11 @@ Open `index.html` in any browser. No server, no internet, no build. Works on a p
 
 - **Mock exam** — 50 questions, 60-minute timer, no feedback until you submit, 45/50 to pass.
   Every wrong answer comes back with an explanation, and you can re-drill just those.
-- **Study** — the whole bank by category, answers and reasons shown.
+- **Study** — the whole bank by category, answers and reasons shown, six questions to a page with numbered navigation.
 - **Alcohol & drugs · Fitness to ride · First aid** — three new categories covering the topics you
   remembered from the real exam: the alcohol limits, whether a given medical condition disqualifies
   you, and which casualty carry suits which injury.
-- **Signs** — 220 signs as the real artwork, grouped by the families the exam confuses on
+- **Signs** — 220 signs as the real artwork, twelve to a page, grouped by the families the exam confuses on
   purpose, with the shape and colour logic that lets you answer signs you have never seen.
 - **Road markings** — the ป้าย-on-the-tarmac category, straight out of the official handbook.
 - **Key numbers** — the memorisation core, plus the traps that actually fail people.
@@ -25,7 +25,8 @@ Open `index.html` in any browser. No server, no internet, no build. Works on a p
 435 questions (231 written + 204 signs). Run `index.html?selftest` (or `node check.js`) to verify
 the bank, the artwork, the generated sign options, the gallery-only rule and the scoring.
 
-Handy URLs: `index.html#exam` drops straight into a fresh paper; `index.html#exam-sign` (or
+Handy URLs: `index.html#signs/7` and `index.html#study/2` open a tab at that page (the address
+updates as you page, so a reload or a shared link lands in the same place); `index.html#exam` drops straight into a fresh paper; `index.html#exam-sign` (or
 `-mark`, `-alco`, `-fit`, `-aid`, `-trf`, `-veh`, `-etq`, `-safe`, `-maint`, `-moto`, `-proc`)
 drills one category under exam conditions without writing to your history.
 
