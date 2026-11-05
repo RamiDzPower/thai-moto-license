@@ -1,0 +1,4 @@
+.build/
+thumb-*.jpg
+.DS_Store
+__pycache__/
